@@ -1,15 +1,21 @@
-# FusionPosts
-My Fusion Post Processor Edits here !
+#Fusion360 Posts
+Above is the list of post processors that I use on a daily basis
+These post processors have a lot of comments , I built these posts to help me operators to have a better information of the setup and program
+Not everyone can make sense of G Codes.
+The comments help / warn / notify the operators mostly to avoid crashes.
 
-Here is my post processor for Haas 3Axis VMC has the following features
-1. Shows Date and Time at Start of the Program
-2. Got Rid of the Fanuc Style Program Number , now text strings are program number/name gives a nice view on control
-3. Does not posts any Work Offset code G54/55/56/57... instead gives a good line saying "Specify Offset Here"
-4. Shows Tool List with Max Z Depth of Each tool, help verify tool stickout and any unwanted Z Plunges.
-5. Each Operation is well formatted into sections making the program look pretty.
-6. Has some Automation options of DPRNT over TCP , can be modified to suit needs.
+The post processors have been changed only cosmetically(if that is a word) , no movements code have been added or removed , if the comments
+are removed it is pretty much the exact movement codes as a stock post would do.
 
-My post is avaiable to download from my github
+Setup sheets are a separate document to be maintained , so to an extent these posts contain some of the information as setup sheets.
 
-I use this post daily , but be cautious if someone uses it for their application
-The post has //edits comments to help see what has been modified by me.
+If someone wants to use these posts , do so. If someone wants to suggest an update do so.
+
+Post Processors for :
+DMG Mori NLX 2500 / 700
+Haas ST20Y
+Haas VF 3AX Mills
+Siemens 808D Milling 
+
+Thanks 🌸🌸
+
