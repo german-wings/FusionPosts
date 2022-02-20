@@ -1,6 +1,7 @@
 #Fusion360 Posts
+
 Above is the list of post processors that I use on a daily basis
-These post processors have a lot of comments , I built these posts to help me operators to have a better information of the setup and program
+These post processors have a lot of comments , I built these posts to help my operators to have a better information of the setup and program
 Not everyone can make sense of G Codes.
 The comments help / warn / notify the operators mostly to avoid crashes.
 
@@ -12,9 +13,13 @@ Setup sheets are a separate document to be maintained , so to an extent these po
 If someone wants to use these posts , do so. If someone wants to suggest an update do so.
 
 Post Processors for :
+
 DMG Mori NLX 2500 / 700
+
 Haas ST20Y
+
 Haas VF 3AX Mills
+
 Siemens 808D Milling 
 
 Thanks 🌸🌸
