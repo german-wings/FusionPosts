@@ -18,6 +18,8 @@ previousMotion.x = undefined
 previousMotion.type = undefined
 
 
+
+
 function breaker(distance, startPoint, endPoint , motion_type) {
 
     let sub_divided_points = []
@@ -288,6 +290,8 @@ function breaker(distance, startPoint, endPoint , motion_type) {
     previousMotion.x = initialPosition.x
     previousMotion.z = initialPosition.z
     previousMotion.type = 'G00'
+    writeln("(SECTION START)G0 Z"+initialPosition.z.toFixed(4))
+    writeln("(SECTION START)G0 X"+(initialPosition.x*2).toFixed(4))
     store_motion_data('G0' , initialPosition.x , initialPosition.z)
   }
   
@@ -785,7 +789,7 @@ function breaker(distance, startPoint, endPoint , motion_type) {
     currentPosition.x = _x
     currentPosition.z = _z
     currentPosition.type = 'G0'
-    writeln('G0 '+"X "+currentPosition.x*2 +" Z"+ currentPosition.z)
+    writeln('G0 '+"X "+(currentPosition.x*2).toFixed(4) +" Z"+ currentPosition.z.toFixed(4))
     
     previousMotion.x = currentPosition.x
     previousMotion.z = currentPosition.z
@@ -801,13 +805,13 @@ function breaker(distance, startPoint, endPoint , motion_type) {
     currentPosition.type = 'G01'
     let broken_segments = breaker(0.1 , previousMotion , currentPosition , 'G01')
 
-    writeln('')
-    writeln('G0 From-------'+'X '+(previousMotion.x*2)+'--------Z '+previousMotion.z)
+    //writeln('')
+    //writeln('G0 From-------'+'X '+(previousMotion.x*2)+'--------Z '+previousMotion.z)
     for(let counter = 0 ; counter < broken_segments.length ; counter++)
     {
-        writeln(broken_segments[counter].type +" X "+broken_segments[counter].rise.toFixed(4) +" Z"+ broken_segments[counter].run)
+        writeln(broken_segments[counter].type +" X "+broken_segments[counter].rise.toFixed(4) +" Z"+ broken_segments[counter].run.toFixed(4))
     }
-    writeln('G0 To-------'+'X '+(currentPosition.x*2)+'--------Z '+currentPosition.z)
+    //writeln('G0 To-------'+'X '+(currentPosition.x*2)+'--------Z '+currentPosition.z)
 
     previousMotion.x = currentPosition.x
     previousMotion.z = currentPosition.z
@@ -861,19 +865,7 @@ function breaker(distance, startPoint, endPoint , motion_type) {
   
   function onSectionEnd() {
     dump("onSectionEnd", arguments);
-    
-    for(counter = 1 ; counter < motion_list.length ; counter++){
-        /*
-      subdivided_motion_list.push.apply(
-        subdivided_motion_list,breaker(0.1 , motion_list[counter-1],motion_list[counter],motion_list[counter].type))
-        */
-    }
-  
-    for(counter = 0 ; counter < subdivided_motion_list.length ; counter++){
-      //writeln(subdivided_motion_list.motion_type+" X"+subdivided_motion_list[counter].rise + " Z" + subdivided_motion_list[counter].run)
-      //writeln(subdivided_motion_list)
-    }
-    
+    previousMotion = {}
   }
   
   
