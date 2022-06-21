@@ -17,7 +17,7 @@ previousMotion.z = undefined
 previousMotion.x = undefined
 previousMotion.type = undefined
 
-
+let segment_length = 0.05
 
 
 function breaker(distance, startPoint, endPoint , motion_type) {
@@ -803,7 +803,7 @@ function breaker(distance, startPoint, endPoint , motion_type) {
     currentPosition.x = _x
     currentPosition.z = _z
     currentPosition.type = 'G01'
-    let broken_segments = breaker(0.1 , previousMotion , currentPosition , 'G01')
+    let broken_segments = breaker(segment_length , previousMotion , currentPosition , 'G01')
 
     //writeln('')
     //writeln('G0 From-------'+'X '+(previousMotion.x*2)+'--------Z '+previousMotion.z)
