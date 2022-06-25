@@ -17,8 +17,13 @@ previousMotion.z = undefined
 previousMotion.x = undefined
 previousMotion.type = undefined
 
-let segment_length = 0.05
+let segment_length = 0.02
+let sub_divided_feed = 0.2
 
+let spindle_max = 1300
+let spindle_min = 800
+let spindle_rate_constant = spindle_min * sub_divided_feed * segment_length
+current_spindle_speed = spindle_rate_constant + spindle_min
 
 function breaker(distance, startPoint, endPoint , motion_type) {
 
@@ -57,7 +62,7 @@ function breaker(distance, startPoint, endPoint , motion_type) {
             let small_points = {}
             small_points.rise = sub_divided_rise;
             small_points.run = sub_divided_run;
-            small_points.type = '(STRAIGHT Y) G01'//motion_type
+            small_points.type = 'G01'//motion_type
   
             sub_divided_points.push(small_points)
         
@@ -96,7 +101,7 @@ function breaker(distance, startPoint, endPoint , motion_type) {
             let small_points = {}
             small_points.rise = sub_divided_rise;
             small_points.run = sub_divided_run;
-            small_points.type = '(STRAIGHT X )G01'//motion_type
+            small_points.type = 'G01'//motion_type
   
             sub_divided_points.push(small_points)
         
@@ -139,7 +144,7 @@ function breaker(distance, startPoint, endPoint , motion_type) {
             let small_points = {}
             small_points.rise = sub_divided_rise;
             small_points.run = sub_divided_run;
-            small_points.type = '(HYP) G01'//motion_type
+            small_points.type = 'G01'//motion_type
   
             sub_divided_points.push(small_points)
             //writeln('(BLOCK WITH HYP)')
@@ -159,7 +164,7 @@ function breaker(distance, startPoint, endPoint , motion_type) {
   
   longDescription = "Use this post to understand which information is available when developing a new post. The post will output the primary information for each entry function being called.";
   
-  extension = "dmp";
+  extension = "nc";
   // using user code page
   
   capabilities = CAPABILITY_INTERMEDIATE;
@@ -260,10 +265,10 @@ function breaker(distance, startPoint, endPoint , motion_type) {
   }
   
   function onOpen() {
-    writeln("  Post Engine Version = " + getVersion());
-    writeln("  Program Name = " + programName);
-    writeln("  Program Comment = " + programComment);
-    dump("onOpen", arguments);
+    //writeln("  Post Engine Version = " + getVersion());
+    //writeln("  Program Name = " + programName);
+    //writeln("  Program Comment = " + programComment);
+    //dump("onOpen", arguments);
   }
   
   function onPassThrough() {
@@ -290,8 +295,10 @@ function breaker(distance, startPoint, endPoint , motion_type) {
     previousMotion.x = initialPosition.x
     previousMotion.z = initialPosition.z
     previousMotion.type = 'G00'
-    writeln("(SECTION START)G0 Z"+initialPosition.z.toFixed(4))
-    writeln("(SECTION START)G0 X"+(initialPosition.x*2).toFixed(4))
+    writeln("(SECTION START)G0 Z"+initialPosition.z.toFixed(3))
+    writeln("(SECTION START)G0 X"+(initialPosition.x*2).toFixed(3))
+    writeln("(SECTION START)G0 Y"+initialPosition.y)
+    writeln("(INITIAL SPINDLE SPEED)G97 M03 S"+current_spindle_speed)
     store_motion_data('G0' , initialPosition.x , initialPosition.z)
   }
   
@@ -789,7 +796,7 @@ function breaker(distance, startPoint, endPoint , motion_type) {
     currentPosition.x = _x
     currentPosition.z = _z
     currentPosition.type = 'G0'
-    writeln('G0 '+"X "+(currentPosition.x*2).toFixed(4) +" Z"+ currentPosition.z.toFixed(4))
+    writeln('G0 '+"X"+(currentPosition.x*2).toFixed(3) +" Z"+ currentPosition.z.toFixed(3))
     
     previousMotion.x = currentPosition.x
     previousMotion.z = currentPosition.z
@@ -809,7 +816,15 @@ function breaker(distance, startPoint, endPoint , motion_type) {
     //writeln('G0 From-------'+'X '+(previousMotion.x*2)+'--------Z '+previousMotion.z)
     for(let counter = 0 ; counter < broken_segments.length ; counter++)
     {
-        writeln(broken_segments[counter].type +" X "+broken_segments[counter].rise.toFixed(4) +" Z"+ broken_segments[counter].run.toFixed(4))
+        writeln(broken_segments[counter].type +" X"+broken_segments[counter].rise.toFixed(3) +" Z"+ broken_segments[counter].run.toFixed(3) + 'F'+sub_divided_feed + " G97 S"+current_spindle_speed.toFixed(2) + 'M03')
+        //writeln("G97 S"+current_spindle_speed + 'M03')
+        current_spindle_speed+=spindle_rate_constant
+        if(current_spindle_speed < spindle_min){
+          spindle_rate_constant = (Math.abs(spindle_rate_constant))
+        }
+        if(current_spindle_speed > spindle_max){
+          spindle_rate_constant = -(Math.abs(spindle_rate_constant))
+        }
     }
     //writeln('G0 To-------'+'X '+(currentPosition.x*2)+'--------Z '+currentPosition.z)
 
@@ -864,7 +879,7 @@ function breaker(distance, startPoint, endPoint , motion_type) {
   
   
   function onSectionEnd() {
-    dump("onSectionEnd", arguments);
+    //dump("onSectionEnd", arguments);
     previousMotion = {}
   }
   
@@ -873,6 +888,6 @@ function breaker(distance, startPoint, endPoint , motion_type) {
   
   
   function onClose() {
-    dump("onClose", arguments);
+    //dump("onClose", arguments);
   }
   
