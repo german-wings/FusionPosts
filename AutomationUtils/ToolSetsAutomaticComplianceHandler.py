@@ -133,17 +133,35 @@ for tools in tool_set_file['data']:
         
 
         elif(tools['type'] == "turning general"):
+            insert_standard_code = {'0':'N','7':'C','5':'B'}
             tool_ic = round(tools["geometry"]["INSD"],0)
             tool_corner_radii = round(tools["geometry"]["RE"],2)
-            insert_bottom_relief = 'N' if (tools["geometry"]["RA"] == 0) else tools["geometry"]["RA"]
+            insert_bottom_relief = insert_standard_code[str(tools["geometry"]["RA"])]
             insert_tolearance_class = tools["geometry"]["TC"]
             insert_screw_type = tools["geometry"]["SCTY"]
             insert_size_code = tools["geometry"]["SC"]
             new_tool_profile = tools
-            new_tool_profile['description'] = f"OD TURN {insert_size_code}{insert_bottom_relief}{insert_tolearance_class}{insert_screw_type} - R{tool_corner_radii} SIZE {tool_ic}"
+            new_tool_profile['description'] = f"OD TURN {insert_size_code}{insert_bottom_relief}{insert_tolearance_class}{insert_screw_type} - R{tool_corner_radii}"
             print("Adding "+new_tool_profile['description'])
             new_tools.append(new_tool_profile)
 
+        elif(tools['type'] == "turning boring"):
+            insert_standard_code = {'0':'N','7':'C','5':'B'}
+            tool_ic = round(tools["geometry"]["INSD"],0)
+            tool_corner_radii = round(tools["geometry"]["RE"],2)
+            insert_bottom_relief = insert_standard_code[str(tools["geometry"]["RA"])]
+            insert_tolearance_class = tools["geometry"]["TC"]
+            insert_screw_type = tools["geometry"]["SCTY"]
+            insert_size_code = tools["geometry"]["SC"]
+            holder_size = tools["holder"]["W"]
+            dmin = tools["holder"]['CW'] + (holder_size/2)
+            new_tool_profile = tools
+            new_tool_profile['description'] = f"ID BORE {holder_size}MM {insert_size_code}{insert_bottom_relief}{insert_tolearance_class}{insert_screw_type} - R{tool_corner_radii} DMIN {dmin}"
+            print("Adding "+new_tool_profile['description'])
+            new_tools.append(new_tool_profile)
+
+        
+        
         else:
             print("Passing " + tools['description'])
             new_tool_profile = tools
