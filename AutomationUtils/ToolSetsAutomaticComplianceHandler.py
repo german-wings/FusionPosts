@@ -147,6 +147,8 @@ for tools in tool_set_file['data']:
 
         elif(tools['type'] == "turning boring"):
             insert_standard_code = {'0':'N','7':'C','5':'B'}
+            boring_bar_incl = {"boring bar p" : 'P' , "boring bar l" : 'L' , "boring bar f" : 'F' , "boring bar q" : "Q" , "boring bar u" : "U",
+            "boring bar k" : "K" , "boring bar j" : "J" , "custom" : "X"}
             tool_ic = round(tools["geometry"]["INSD"],0)
             tool_corner_radii = round(tools["geometry"]["RE"],2)
             insert_bottom_relief = insert_standard_code[str(tools["geometry"]["RA"])]
@@ -154,9 +156,10 @@ for tools in tool_set_file['data']:
             insert_screw_type = tools["geometry"]["SCTY"]
             insert_size_code = tools["geometry"]["SC"]
             holder_size = tools["holder"]["W"]
+            holder_style = boring_bar_incl[tools["holder"]["THSC"]]
             dmin = tools["holder"]['CW'] + (holder_size/2)
             new_tool_profile = tools
-            new_tool_profile['description'] = f"ID BORE {holder_size}MM {insert_size_code}{insert_bottom_relief}{insert_tolearance_class}{insert_screw_type} - R{tool_corner_radii} DMIN {dmin}"
+            new_tool_profile['description'] = f"ID BORE {holder_size}MM Holder Type {holder_style} {insert_size_code}{insert_bottom_relief}{insert_tolearance_class}{insert_screw_type} - R{tool_corner_radii} DMIN {dmin}"
             print("Adding "+new_tool_profile['description'])
             new_tools.append(new_tool_profile)
 
