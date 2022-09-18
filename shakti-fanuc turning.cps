@@ -19,10 +19,14 @@ function insertBlockNoOnToolChange(){
   return insertBlockNoOnToolChange.blockno++
 }
 
+//edits
+function onPassThrough(text) {
+  writeBlock(text);
+}
 
 
 description = "SHAKTI-FANUC-POST";
-vendor = "BHAVAR";
+vendor = "SHAKTI-FANUC-POST";
 vendorUrl = "https://www.bhavar.gq";
 
 // >>>>> INCLUDED FROM ../common/fanuc lathe.cps
@@ -361,12 +365,14 @@ function getCode(code) {
   // case "START_LIVE_TOOL_CCW":
   // machineState.liveToolIsActive = true;
   // return mFormat.format(UNSUPPORTED);
+  //edits
+  //reversing spindle rotation for our shakti-ace micromatic.
   case "START_MAIN_SPINDLE_CW":
     // machineState.mainSpindleIsActive = true;
-    return mFormat.format(3);
+    return mFormat.format(4);
   case "START_MAIN_SPINDLE_CCW":
     // machineState.mainSpindleIsActive = true;
-    return mFormat.format(4);
+    return mFormat.format(3);
   // case "START_SUB_SPINDLE_CW":
     // machineState.subSpindleIsActive = true;
     // return mFormat.format(UNSUPPORTED);

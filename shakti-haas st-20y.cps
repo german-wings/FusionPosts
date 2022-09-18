@@ -10,6 +10,20 @@
   FORKID {14D60AD3-4366-49dc-939C-4DB5EA48FF68}
 */
 
+//edits
+//static functions here
+
+function showNBlockOnOperationsOnly(){
+  //this function generates NBlocks
+  if(typeof showNBlockOnOperationsOnly.counter == 'undefined'){
+    showNBlockOnOperationsOnly.counter = 1
+  }
+  return showNBlockOnOperationsOnly.counter++
+}
+
+
+//static functions ends
+
 description = "HAAS ST-20Y";
 description = "ST20Y/Custom Haas Next Gen Control";
 vendor = "Haas Custom Post by Bhavar";
@@ -36,9 +50,9 @@ var gotDoorControl = false;
 ///////////////////////////////////////////////////////////////////////////////
 
 if (!description) {
-  description = "HAAS Lathe";
+  description = "SHAKTI-HAAS-ST20Y";
 }
-vendor = "Haas Automation";
+vendor = "SHAKTI-HAAS-ST20Y";
 vendorUrl = "https://www.haascnc.com";
 legal = "Copyright (C) 2012-2021 by Autodesk, Inc.";
 certificationLevel = 2;
@@ -68,6 +82,14 @@ highFeedrate = (unit == IN) ? 470 : 12000;
 
 // user-defined properties
 properties = {
+  showNBlockOnOperationsOnly: {
+    title: "Show Sequence Number on N Blocks Only",
+    description: "Show Sequence Number on N Blocks Only",
+    group: 1,
+    type: "boolean",
+    value: true,
+    scope: "post"
+  },
   writeMachine: {
     title: "Write machine",
     description: "Output the machine settings in the header of the code.",
@@ -97,7 +119,7 @@ properties = {
     description: "Use sequence numbers for each block of outputted code.",
     group: 1,
     type: "boolean",
-    value: true,
+    value: false,
     scope: "post"
   },
   sequenceNumberStart: {
@@ -357,6 +379,11 @@ properties = {
     scope: "post"
   }
 };
+
+ //edits
+ if(getProperty("showSequenceNumbers") && getProperty("showNBlockOnOperationsOnly")){
+  setProperty("showSequenceNumbers",false)
+}
 
 var permittedCommentChars = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,=_-";
 
@@ -940,6 +967,14 @@ let radial_tool_bucket = [];
 let axial_tool_bucket = [];
 
 function onOpen() {
+
+  //edits
+  //remove showNBlockOnOperationsOnly if showSequenceNumber is true
+  if(getProperty("showNBlockOnOperationsOnly") && getProperty("showSequenceNumbers"))
+  {
+    setProperty("showNBlockOnOperationsOnly" , false)
+  }
+
   if (getProperty("useRadius")) {
     maximumCircularSweep = toRad(90); // avoid potential center calculation errors for CNC
   }
@@ -1002,6 +1037,7 @@ function onOpen() {
 //edits
   if (programName) {
     writeln("%" + "(" + programName + ")");
+    writeComment("Part Name : "+programName)
     writeComment("PROGRAM TYPE TURN / MILL TURN");
     writeComment("Property/copyright of SHAKTI ENTERPRISE");
     writeComment("Program issued not after " + formatAMPM(new Date()));
@@ -1159,11 +1195,35 @@ function onOpen() {
           tool_z_max +
           " | " +
           orientation_information;
+          //edits added LIVE TOOL notification
+          if(tool.isLiveTool()){
+            custom_comment += " | LIVE TOOL"
+          }
         writeln("("+tool_number+")"+"("+custom_comment+")");
       }
       writeln("");
     }
   }
+
+  //Edits
+  writeln("");
+  //edits 
+  //iterate through sections to check if wear is activavted on a section
+  writeComment("Operator Note")
+  numberOfSections = getNumberOfSections()
+  for (let sectionCount = 0; sectionCount < numberOfSections; ++sectionCount) {
+    let section = getSection(sectionCount)
+    if (section.hasParameter("operation:compensationType") && section.hasParameter("operation-comment") && section.hasParameter("operation:tool_description")) {
+      compensationType = section.getParameter("operation:compensationType")
+      sectionComment = section.getParameter("operation-comment")
+      sectionTool = section.getParameter("operation:tool_description")
+      if (compensationType == "wear" || compensationType == "control") {
+        writeComment("WEAR ACTIVATED on " + sectionTool + " for Section " + sectionComment)
+      }
+    }
+  }
+  writeComment("Operator Note Ends")
+  writeln("")
 
   if (false) {
     // check for duplicate tool number
@@ -1852,6 +1912,10 @@ function onSection() {
     var comment = getParameter("operation-comment");
     if (comment) {
       //edits
+      if(getProperty("showNBlockOnOperationsOnly")){
+      writeBlock("N"+showNBlockOnOperationsOnly())
+      }
+      //edits
       writeComment("Operation :" + comment);
       //edits
       //note force write tool information on each operation / section
@@ -1898,6 +1962,14 @@ function onSection() {
       );
     }
   }
+
+
+  //edits
+  //getting values dynamically from cam kernel engine
+  let ranges = getSectionXRanges(currentSection)
+  writeComment("X Axis Max Limit :" + (ranges.xMax*2).toFixed(3))
+  writeComment("X Axis Min Limit :" + (ranges.xMin*2).toFixed(3))
+
 
   if (!insertToolCall && operationNeedsSafeStart) {
     skipBlock = true;
@@ -4344,5 +4416,15 @@ function setProperty(property, value) {
 }
 // <<<<< INCLUDED FROM ../common/haas lathe.cps
 
-properties.maximumSpindleSpeed.value = 4000;
+//edits
+//changing default spindle maximum speed from value 4000 to 2000
+properties.maximumSpindleSpeed.value = 2000;
 properties.subMaximumSpindleSpeed.value = 4000;
+
+
+
+//edits get section max and min:
+function getSectionXRanges(currentSection){
+  globalXRange = currentSection.getGlobalRange(new Vector(1,0,0))
+  return {xMax : globalXRange.getMaximum(), xMin :globalXRange.getMinimum()}
+}

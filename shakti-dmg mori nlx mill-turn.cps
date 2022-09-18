@@ -24,11 +24,11 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 
-//debugMode = true;
+//debugMode = false;
 
 description = "NLX2500 MSY";
 description = "NLX2500 MSY POST PROCESSOR";
-vendor = "NLX Custom Post by Bhavar";
+vendor = "SHAKTI-DMG-NLX2500-MSY";
 vendorUrl = "https://www.bhavar.gq";
 legal = "Property of Shakti Enterprise / bhavar Kumavat";
 
@@ -81,12 +81,13 @@ properties = {
     value      : 12,
     scope      : "post"
   },
+  //edits made showSequenceNumbers to false
   showSequenceNumbers: {
     title      : "Use sequence numbers",
     description: "Use sequence numbers for each block of outputted code.",
     group      : 1,
     type       : "boolean",
-    value      : true,
+    value      : false,
     scope      : "post"
   },
   sequenceNumberStart: {
@@ -145,11 +146,12 @@ properties = {
     value: 2700,
     scope: "post"
   },
+  //changed parameteric feed to true
   useParametricFeed: {
     title      : "Parametric feed",
     description: "Specifies the feed value that should be output using a Q value.",
     type       : "boolean",
-    value      : false,
+    value      : true,
     scope      : "post"
   },
   showNotes: {
@@ -301,7 +303,7 @@ properties = {
       {title:"Standard", id:"standard"},
       {title:"F15", id:"f15"}
     ],
-    value: "f15",
+    value: "standard",
     scope: "post"
   },
 };
@@ -779,6 +781,7 @@ function onOpen() {
     //edits
     //fixed naming convention for file names
     writeln("%\n" + "<" + programName + ">");
+    writeComment("PART NAME : "+programName)
     writeComment("PROGRAM FOR NLX2500/700")
     writeComment("PROGRAM TYPE TURN / MILL TURN");
     writeComment("Property/copyright of SHAKTI ENTERPRISE");
@@ -943,6 +946,12 @@ function onOpen() {
           tool_z_max +
           " | " +
           orientation_information;
+
+          //edits show if the tool is live or not besides orientation
+          if(tool.isLiveTool()){
+            custom_comment+=" | LIVE TOOL"
+          }
+
         writeln("("+tool_number+")"+"("+custom_comment+")");
       }
       writeln("");
@@ -1662,23 +1671,14 @@ function onSection() {
     }
   }
 
-  //edits
-  if(currentSection.hasParameter('operation:turningMode'))
-  {
-    if(currentSection.getParameter('operation:turningMode')=='outer'){
-      let dia_clearance_height = currentSection.getParameter('operation:outerClearance_value') * 2;
-      let dia_min_height = currentSection.getParameter('operation:innerRadius_value') *2;
-      writeComment("X Axis Max Limit : " + dia_clearance_height);
-      writeComment("X Axis Min Limit :" + dia_min_height);
-    }
-    if(currentSection.getParameter('operation:turningMode')=='inner'){
-      let dia_clearance_height = currentSection.getParameter('operation:innerClearance_value')*2
-      let dia_max_height = currentSection.getParameter('operation:outerRadius_value') *2;
-      writeComment("X Axis Min Limit : " + dia_clearance_height);
-      writeComment("X Axis Max Limit : "+ dia_max_height)
-    }
-  }
+    //edits
+  //getting values dynamically from cam kernel engine
+  let ranges = getSectionXRanges(currentSection)
+  writeComment("X Axis Max Limit :" + (ranges.xMax*2).toFixed(3))
+  writeComment("X Axis Min Limit :" + (ranges.xMin*2).toFixed(3))
 
+
+  
   // invert axes for secondary spindle
   if (getSpindle(true) == SPINDLE_SUB) {
     invertAxes(currentSection, false); // polar mode has not been enabled yet
@@ -4123,4 +4123,11 @@ function onClose() {
 
 function setProperty(property, value) {
   properties[property].current = value;
+}
+
+
+//edits get section max and min:
+function getSectionXRanges(currentSection){
+  globalXRange = currentSection.getGlobalRange(new Vector(1,0,0))
+  return {xMax : globalXRange.getMaximum(), xMin :globalXRange.getMinimum()}
 }

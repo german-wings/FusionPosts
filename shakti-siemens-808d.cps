@@ -301,6 +301,10 @@ function onOpen() {
     }
   }
 
+    //edits writing CYCLE832
+    writeBlock("CYCLE832(0.06,3,1)")
+    writeBlock("FFWON")
+
   if ((getNumberOfSections() > 0) && (getSection(0).workOffset == 0)) {
     for (var i = 0; i < getNumberOfSections(); ++i) {
       if (getSection(i).workOffset > 0) {
@@ -858,6 +862,10 @@ function onSpindleSpeed(spindleSpeed) {
 
 var expandCurrentCycle = false;
 
+//EDITS 
+//BROUGHT IN CODE FROM CAM.POSTS SIEMENS POST
+//EARLIER CODE WAS MISSING ONE POINT
+
 function onCycle() {
   if (!isSameDirection(getRotation().forward, new Vector(0, 0, 1))) {
     expandCurrentCycle = true;
@@ -865,7 +873,7 @@ function onCycle() {
   }
 
   writeBlock(gPlaneModal.format(17), gFeedModeModal.format(94));
-  
+
   expandCurrentCycle = false;
 
   if ((cycleType != "tapping") &&
@@ -919,12 +927,12 @@ function onCycle() {
     } else {
       var FDEP = cycle.stock - cycle.incrementalDepth;
       var FDPR = cycle.incrementalDepth; // relative to reference plane (unsigned)
-      var DAM = 0; // degression (unsigned)
+      var DAM = cycle.incrementalDepthReduction; // degression (unsigned)
       var DTS = 0; // dwell time at start
       var FRF = 1; // feedrate factor (unsigned)
       var VARI = 0; // chip breaking
       var _AXN = 3; // tool axis
-      var _MDEP = cycle.incrementalDepth; // minimum drilling depth
+      var _MDEP = (cycle.incrementalDepthReduction > 0) ? cycle.minimumIncrementalDepth : cycle.incrementalDepth; // minimum drilling depth
       var _VRT = cycle.chipBreakDistance ? cycle.chipBreakDistance : 0; // retraction distance
       var _DTD = (cycle.dwell != undefined) ? cycle.dwell : 0;
       var _DIS1 = 0; // limit distance
@@ -957,11 +965,11 @@ function onCycle() {
     }
     var FDEP = cycle.stock - cycle.incrementalDepth;
     var FDPR = cycle.incrementalDepth; // relative to reference plane (unsigned)
-    var DAM = 0; // degression (unsigned)
+    var DAM = cycle.incrementalDepthReduction; // degression (unsigned)
     var DTS = 0; // dwell time at start
     var FRF = 1; // feedrate factor (unsigned)
     var VARI = 1; // full retract
-    var _MDEP = cycle.incrementalDepth; // minimum drilling depth
+    var _MDEP = (cycle.incrementalDepthReduction > 0) ? cycle.minimumIncrementalDepth : cycle.incrementalDepth; // minimum drilling depth
     var _VRT = cycle.chipBreakDistance ? cycle.chipBreakDistance : 0; // retraction distance
     var _DTD = (cycle.dwell != undefined) ? cycle.dwell : 0;
     var _DIS1 = 0; // limit distance
@@ -1040,7 +1048,7 @@ function onCycle() {
     var GMODE = 0; // reserved (geometrical mode)
     var DMODE = 0; // units and active spindle (0 for tool spindle, 100 for turning spindle)
     var AMODE = 0; // alternate mode
-      
+
     writeBlock(
       "MCALL CYCLE84(" + xyzFormat.format(RTP) +
       ", " + xyzFormat.format(RFP) +
@@ -1123,9 +1131,6 @@ function onCycle() {
 }
 
 function onCyclePoint(x, y, z) {
-  if (isFirstCyclePoint() && !expandCurrentCycle) {
-    return;
-  }
   if (!expandCurrentCycle) {
     var _x = xOutput.format(x);
     var _y = yOutput.format(y);
@@ -1144,6 +1149,7 @@ function onCycleEnd() {
   }
   zOutput.reset();
 }
+
 
 var pendingRadiusCompensation = -1;
 

@@ -22,6 +22,22 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+//edits
+//custom function lists here
+
+function showNBlockOnOperationsOnly() {
+  if (typeof showNBlockOnOperationsOnly.counter == "undefined") {
+    showNBlockOnOperationsOnly.counter = 0
+  }
+  return showNBlockOnOperationsOnly.counter++
+}
+
+
+//custom function lists ends
+
+
+
 description = "SHAKTI-HAAS-3AX";
 vendor = "SHAKTI-HAAS-3AX";
 vendorUrl = "https://www.bhavar.gq";
@@ -67,13 +83,19 @@ properties = {
   writeVersion: false, // include version info
   preloadTool: false, // preloads next tool on tool change if any
   chipTransport: false, // turn on chip transport at start of program
-  showSequenceNumbers: true, // show sequence numbers
+  //edits added the below property
+  showNBlockOnOperationsOnly : true,
+  //edits
+  //removed sequence numbers if showNBlockOnToolsOnly is true
+  showSequenceNumbers: false, // show sequence numbers
+  //edits
+  showNBlockOnOperationsOnly: true,
   sequenceNumberStart: 10, // first sequence number
   sequenceNumberIncrement: 5, // increment for sequence numbers
   sequenceNumberOnlyOnToolChange: false, // only output sequence numbers on tool change
-  optionalStop: true, // optional stop
+  optionalStop: false, // optional stop
   separateWordsWithSpace: true, // specifies that the words should be separated with a white space
-  useRadius: false, // specifies that arcs should be output using the radius (R word) instead of the I, J, and K words.
+  useRadius: true, // specifies that arcs should be output using the radius (R word) instead of the I, J, and K words.
   useParametricFeed: false, // specifies that feed should be output using Q values
   showNotes: true, // specifies that operation notes should be output
   useG0: true, // allow G0 when moving along more than one axis
@@ -96,13 +118,16 @@ properties = {
   useG95forTapping: false, // use IPR/MPR instead of IPM/MPM for tapping
   safeRetractDistance: 0.0, // distance to add to retract distance when rewinding rotary axes
   useDPMFeeds: false, // output DPM feeds instead of Inverse Time feeds
-  useTCPC: true, // enable/disable TCPC option
-  useDWO: true, // Dynamic Work Offset (DWO), like CYCL 19
+  //edits changed useTCPC to false by default
+  useTCPC: false, // enable/disable TCPC option
+  //edits changed useDWO to false by Default
+  useDWO: false, // Dynamic Work Offset (DWO), like CYCL 19
   useM130PartImages: false, // enable to include M130 pictures
   useM130ToolImages: false, // enable to include M130 pictures
   coolantPressure: "", // coolant pump pressure
   singleResultsFile: true, // create a single file containing the results for all posted inspection toolpath
 };
+
 
 propertyDefinitions = {
   machineModel: {
@@ -206,7 +231,7 @@ propertyDefinitions = {
     description:
       "If yes is selected, arcs are output using radius values rather than IJK.",
     group: 2,
-    type: "boolean",
+    type: "boolean"
   },
   useParametricFeed: {
     title: "Parametric feed",
@@ -341,6 +366,13 @@ propertyDefinitions = {
   showSequenceNumbers: {
     title: "Use sequence numbers",
     description: "Use sequence numbers for each block of outputted code.",
+    group: 4,
+    type: "boolean",
+  },
+  //edits
+  showNBlockOnOperationsOnly: {
+    title: "Show N Block on Operations Only",
+    description: "Show Sequence Numbers on each Section",
     group: 4,
     type: "boolean",
   },
@@ -572,8 +604,8 @@ function writeBlock() {
   }
   var maximumSequenceNumber =
     properties.useSubroutines ||
-    properties.useSubroutinePatterns ||
-    properties.useSubroutineCycles
+      properties.useSubroutinePatterns ||
+      properties.useSubroutineCycles
       ? initialSubprogramNumber
       : 99999;
   if (properties.showSequenceNumbers) {
@@ -835,6 +867,15 @@ function defineMachine() {
 }
 
 function onOpen() {
+
+  //edits
+  //prevent sequenceNumbers from interfering with our showNBlockOnSectionOnly
+  //check if both are true give precedence to sequenceNumbers
+  if (properties.showSequenceNumbers && properties.showNBlockOnOperationsOnly) {
+    properties.showSequenceNumbers = true
+    properties.showNBlockOnOperationsOnly = false
+  }
+
   if (properties.useDPMFeeds) {
     gFeedModeModal.format(94);
   }
@@ -1006,6 +1047,8 @@ function onOpen() {
   if (programName) {
     //Edits
     writeln("%" + "(" + programName + ")");
+    writeln("")
+    writeComment("Part Name : " + programName)
     writeComment("Property/copyright of SHAKTI ENTERPRISE");
     writeln("");
     writeComment("Vertraue auf den Herrn");
@@ -1118,10 +1161,13 @@ function onOpen() {
         custom_comment += getToolTypeName(tool.type).toUpperCase() + "|";
         custom_comment += "DIA " + xyzFormat.format(tool.diameter) + "mm|";
         custom_comment += "CR " + xyzFormat.format(tool.cornerRadius) + "mm|";
-        custom_comment +=
-          "MAX DEPTH " + xyzFormat.format(zRanges[tool.number].getMinimum());
 
-        writeln("(T"+toolFormat.format(tool.number)+")"+"("+custom_comment+")");
+        if (zRanges[tool.number]) {
+          custom_comment +=
+            "MAX DEPTH " + xyzFormat.format(zRanges[tool.number].getMinimum());
+        }
+
+        writeln("(T" + toolFormat.format(tool.number) + ")" + "(" + custom_comment + ")");
 
         if (properties.useM130ToolImages) {
           var toolRenderer = createToolRenderer();
@@ -1164,18 +1210,18 @@ function onOpen() {
   //iterate through sections to check if wear is activavted on a section
   writeComment("Operator Note")
   numberOfSections = getNumberOfSections()
-  for(let sectionCount = 0 ; sectionCount<numberOfSections ; ++sectionCount){
+  for (let sectionCount = 0; sectionCount < numberOfSections; ++sectionCount) {
     let section = getSection(sectionCount)
-    if(section.hasParameter("operation:compensationType") && section.hasParameter("operation-comment") && section.hasParameter("operation:tool_description")){
+    if (section.hasParameter("operation:compensationType") && section.hasParameter("operation-comment") && section.hasParameter("operation:tool_description")) {
       compensationType = section.getParameter("operation:compensationType")
       sectionComment = section.getParameter("operation-comment")
       sectionTool = section.getParameter("operation:tool_description")
-      if(compensationType == "wear" || compensationType == "control"){
-        writeComment("WEAR ACTIVATED on "+ sectionTool.substr(0,10) + " for "+sectionComment.substr(0,10))
+      if (compensationType == "wear" || compensationType == "control") {
+        writeComment("WEAR ACTIVATED on " + sectionTool + " for Section " + sectionComment)
       }
     }
   }
-  writeComment("Operation Note Ends")
+  writeComment("Operator Note Ends")
   writeln("")
 
 
@@ -1274,7 +1320,7 @@ function onOpen() {
           Vector.diff(o, dynamicWCSs[section.getDynamicWorkOffset()].origin)
             .length > 1e-9 ||
           Matrix.diff(p, dynamicWCSs[section.getDynamicWorkOffset()].plane).n1 >
-            1e-9
+          1e-9
         ) {
           error(
             subst(
@@ -1661,9 +1707,9 @@ function initializeActiveFeeds() {
     var feedContext = activeFeeds[i];
     writeBlock(
       "#" +
-        (firstFeedParameter + feedContext.id) +
-        "=" +
-        feedFormat.format(feedContext.feed),
+      (firstFeedParameter + feedContext.id) +
+      "=" +
+      feedFormat.format(feedContext.feed),
       formatComment(feedContext.description)
     );
   }
@@ -1809,7 +1855,7 @@ function getPreferenceWeight(_abc) {
       preference +=
         abcFormat.getResultingValue(abc[axis[i].getCoordinate()]) *
           axis[i].getPreference() <
-        0
+          0
           ? -1
           : 1;
     }
@@ -1868,19 +1914,19 @@ function getWorkPlaneMachineABC(workPlane, _setWorkPlane) {
   } catch (e) {
     error(
       localize("Machine angles not supported") +
-        ":" +
-        conditional(
-          machineConfiguration.isMachineCoordinate(0),
-          " A" + abcFormat.format(abc.x)
-        ) +
-        conditional(
-          machineConfiguration.isMachineCoordinate(1),
-          " B" + abcFormat.format(abc.y)
-        ) +
-        conditional(
-          machineConfiguration.isMachineCoordinate(2),
-          " C" + abcFormat.format(abc.z)
-        )
+      ":" +
+      conditional(
+        machineConfiguration.isMachineCoordinate(0),
+        " A" + abcFormat.format(abc.x)
+      ) +
+      conditional(
+        machineConfiguration.isMachineCoordinate(1),
+        " B" + abcFormat.format(abc.y)
+      ) +
+      conditional(
+        machineConfiguration.isMachineCoordinate(2),
+        " C" + abcFormat.format(abc.z)
+      )
     );
   }
 
@@ -1892,19 +1938,19 @@ function getWorkPlaneMachineABC(workPlane, _setWorkPlane) {
   if (!machineConfiguration.isABCSupported(abc)) {
     error(
       localize("Work plane is not supported") +
-        ":" +
-        conditional(
-          machineConfiguration.isMachineCoordinate(0),
-          " A" + abcFormat.format(abc.x)
-        ) +
-        conditional(
-          machineConfiguration.isMachineCoordinate(1),
-          " B" + abcFormat.format(abc.y)
-        ) +
-        conditional(
-          machineConfiguration.isMachineCoordinate(2),
-          " C" + abcFormat.format(abc.z)
-        )
+      ":" +
+      conditional(
+        machineConfiguration.isMachineCoordinate(0),
+        " A" + abcFormat.format(abc.x)
+      ) +
+      conditional(
+        machineConfiguration.isMachineCoordinate(1),
+        " B" + abcFormat.format(abc.y)
+      ) +
+      conditional(
+        machineConfiguration.isMachineCoordinate(2),
+        " C" + abcFormat.format(abc.z)
+      )
     );
   }
 
@@ -2010,10 +2056,10 @@ function previewImage() {
         warning(
           localize(
             "The image file format " +
-              '"' +
-              fileExtension +
-              '"' +
-              " is not supported on HAAS controls."
+            '"' +
+            fileExtension +
+            '"' +
+            " is not supported on HAAS controls."
           )
         );
       }
@@ -2038,11 +2084,11 @@ function previewImage() {
 function areSpatialVectorsDifferent(_vector1, _vector2) {
   return (
     xyzFormat.getResultingValue(_vector1.x) !=
-      xyzFormat.getResultingValue(_vector2.x) ||
+    xyzFormat.getResultingValue(_vector2.x) ||
     xyzFormat.getResultingValue(_vector1.y) !=
-      xyzFormat.getResultingValue(_vector2.y) ||
+    xyzFormat.getResultingValue(_vector2.y) ||
     xyzFormat.getResultingValue(_vector1.z) !=
-      xyzFormat.getResultingValue(_vector2.z)
+    xyzFormat.getResultingValue(_vector2.z)
   );
 }
 
@@ -2196,11 +2242,11 @@ function subprogramStart(_initialPosition, _abc, _incremental) {
   }
   writeln(
     "N" +
-      nFormat.format(currentSubprogram) +
-      conditional(
-        comment,
-        formatComment(comment.substr(0, maximumLineLength - 2 - 6 - 1))
-      )
+    nFormat.format(currentSubprogram) +
+    conditional(
+      comment,
+      formatComment(comment.substr(0, maximumLineLength - 2 - 6 - 1))
+    )
   );
   properties.showSequenceNumbers = false;
   if (_incremental) {
@@ -2404,6 +2450,9 @@ function onSection() {
     }
   }
 
+
+  //edits
+  //if(operation-has-comment was here)
   if (hasParameter("operation-comment")) {
     var comment = getParameter("operation-comment");
     if (
@@ -2411,60 +2460,17 @@ function onSection() {
       (comment !== lastOperationComment || !patternIsActive || insertToolCall)
     ) {
       //edits
-      writeln("");
-      writeComment("Operation :" + comment);
-      //edits
-      //note force write tool information on each operation / section
-      var custom_comment = "Operation Uses : ";
-      custom_comment += "" + localize(tool.description);
-      writeComment(localize(custom_comment));
-      lastOperationComment = comment;
-    } else if (!patternIsActive || insertToolCall) {
-      writeln("");
+      writeln("")
+      //adding NBlock only oneach section
+      if (properties.showNBlockOnOperationsOnly) {
+        writeBlock("N" + showNBlockOnOperationsOnly())
+      }
     }
   } else {
     writeln("");
   }
 
-  //edits
-  //from autodesk forums to seek tool depth for each operation
 
-  var showToolZMin = true;
-  if (showToolZMin) {
-    if (is3D()) {
-      var numberOfSections = getNumberOfSections();
-      var zRange = currentSection.getGlobalZRange();
-      var number = tool.number;
-      for (var i = currentSection.getId() + 1; i < numberOfSections; ++i) {
-        var section = getSection(i);
-        //writeComment(localize(JSON.stringify(section)));
-        if (section.getTool().number != number) {
-          break;
-        }
-        //zRange.expandToRange(section.getGlobalZRange());
-      }
-      writeComment(
-        localize("This Operation Max Depth ") +
-          ": " +
-          zRange.getMinimum().toFixed(2)
-      );
-    }
-  }
-
-  if (properties.showNotes && hasParameter("notes")) {
-    var notes = getParameter("notes");
-    if (notes) {
-      var lines = String(notes).split("\n");
-      var r1 = new RegExp("^[\\s]+", "g");
-      var r2 = new RegExp("[\\s]+$", "g");
-      for (line in lines) {
-        var comment = lines[line].replace(r1, "").replace(r2, "");
-        if (comment) {
-          writeComment("Notes :" + comment);
-        }
-      }
-    }
-  }
 
   defineWorkPlane(currentSection, false);
   var initialPosition = getFramePosition(currentSection.getInitialPosition());
@@ -2502,6 +2508,9 @@ function onSection() {
 
     skipBlock = !insertToolCall;
     writeToolBlock("T" + toolFormat.format(tool.number), mFormat.format(6));
+    //edits
+    //compulsory tool stop after change
+    writeBlock("M01(TOOL CHANGE STOP)")
 
     //edits
     //var custom_comment = "Operation Uses : ";
@@ -2533,6 +2542,70 @@ function onSection() {
         writeComment(
           localize("ZMIN") + "=" + xyzFormat.format(zRange.getMinimum())
         );
+      }
+    }
+  }
+
+  //edits
+  //output metadata of section at every section start
+
+  if (hasParameter("operation-comment")) {
+    var comment = getParameter("operation-comment");
+    if (
+      comment &&
+      (comment !== lastOperationComment || !patternIsActive || insertToolCall)
+    ) {
+      //edits
+      writeComment("Operation :" + comment);
+      //edits
+      //note force write tool information on each operation / section
+      var custom_comment = "Operation Uses : ";
+      custom_comment += "" + localize(tool.description);
+      writeComment(localize(custom_comment));
+      lastOperationComment = comment;
+    } else if (!patternIsActive || insertToolCall) {
+      writeln("");
+    }
+  } else {
+    writeln("");
+  }
+
+  //edits
+  //from autodesk forums to seek tool depth for each operation
+
+  var showToolZMin = true;
+  if (showToolZMin) {
+    if (is3D()) {
+      var numberOfSections = getNumberOfSections();
+      var zRange = currentSection.getGlobalZRange();
+      var number = tool.number;
+      for (var i = currentSection.getId() + 1; i < numberOfSections; ++i) {
+        var section = getSection(i);
+        //writeComment(localize(JSON.stringify(section)));
+        if (section.getTool().number != number) {
+          break;
+        }
+        //zRange.expandToRange(section.getGlobalZRange());
+      }
+      writeComment(
+        localize("This Operation Max Depth ") +
+        ": " +
+        zRange.getMinimum().toFixed(2)
+      );
+    }
+  }
+
+  if (properties.showNotes && hasParameter("notes")) {
+    var notes = getParameter("notes");
+    if (notes) {
+      var lines = String(notes).split("\n");
+      var r1 = new RegExp("^[\\s]+", "g");
+      var r2 = new RegExp("[\\s]+$", "g");
+      for (line in lines) {
+        var comment = lines[line].replace(r1, "").replace(r2, "");
+        if (comment) {
+          writeComment("Notes :" + comment);
+        }
       }
     }
   }
@@ -2751,12 +2824,12 @@ function onSection() {
           gMotionModal.format(0),
           conditional(
             !currentSection.isMultiAxis() ||
-              currentSection.getOptimizedTCPMode() == 1,
+            currentSection.getOptimizedTCPMode() == 1,
             gFormat.format(43)
           ),
           conditional(
             currentSection.isMultiAxis() &&
-              currentSection.getOptimizedTCPMode() == 0,
+            currentSection.getOptimizedTCPMode() == 0,
             gFormat.format(234)
           ),
           xOutput.format(initialPosition.x),
@@ -2777,12 +2850,12 @@ function onSection() {
           gMotionModal.format(0),
           conditional(
             !currentSection.isMultiAxis() ||
-              currentSection.getOptimizedTCPMode() == 1,
+            currentSection.getOptimizedTCPMode() == 1,
             gFormat.format(43)
           ),
           conditional(
             currentSection.isMultiAxis() &&
-              currentSection.getOptimizedTCPMode() == 0,
+            currentSection.getOptimizedTCPMode() == 0,
             gFormat.format(234)
           ),
           zOutput.format(initialPosition.z),
@@ -2796,12 +2869,12 @@ function onSection() {
         gMotionModal.format(0),
         conditional(
           !currentSection.isMultiAxis() ||
-            currentSection.getOptimizedTCPMode() == 1,
+          currentSection.getOptimizedTCPMode() == 1,
           gFormat.format(43)
         ),
         conditional(
           currentSection.isMultiAxis() &&
-            currentSection.getOptimizedTCPMode() == 0,
+          currentSection.getOptimizedTCPMode() == 0,
           gFormat.format(234)
         ),
         xOutput.format(initialPosition.x),
@@ -3182,7 +3255,7 @@ function onCyclePoint(x, y, z) {
             gCycleModal.format(73),
             getCommonCycle(x, y, z, cycle.retract, cycle.clearance),
             (cycle.incrementalDepthReduction > 0 ? "I" : "Q") +
-              xyzFormat.format(cycle.incrementalDepth),
+            xyzFormat.format(cycle.incrementalDepth),
             conditional(
               cycle.incrementalDepthReduction > 0,
               "J" + xyzFormat.format(cycle.incrementalDepthReduction)
@@ -3203,7 +3276,7 @@ function onCyclePoint(x, y, z) {
           gCycleModal.format(83),
           getCommonCycle(x, y, z, cycle.retract, cycle.clearance),
           (cycle.incrementalDepthReduction > 0 ? "I" : "Q") +
-            xyzFormat.format(cycle.incrementalDepth),
+          xyzFormat.format(cycle.incrementalDepth),
           conditional(
             cycle.incrementalDepthReduction > 0,
             "J" + xyzFormat.format(cycle.incrementalDepthReduction)
@@ -3419,11 +3492,11 @@ function onCyclePoint(x, y, z) {
           gFormat.format(65),
           "P" + 9811,
           "X" +
-            xyzFormat.format(
-              x +
-                approach(cycle.approach1) *
-                  (cycle.probeClearance + tool.diameter / 2)
-            ),
+          xyzFormat.format(
+            x +
+            approach(cycle.approach1) *
+            (cycle.probeClearance + tool.diameter / 2)
+          ),
           "Q" + xyzFormat.format(cycle.probeOvertravel),
           getProbingArguments(cycle, true)
         );
@@ -3434,11 +3507,11 @@ function onCyclePoint(x, y, z) {
           gFormat.format(65),
           "P" + 9811,
           "Y" +
-            xyzFormat.format(
-              y +
-                approach(cycle.approach1) *
-                  (cycle.probeClearance + tool.diameter / 2)
-            ),
+          xyzFormat.format(
+            y +
+            approach(cycle.approach1) *
+            (cycle.probeClearance + tool.diameter / 2)
+          ),
           "Q" + xyzFormat.format(cycle.probeOvertravel),
           getProbingArguments(cycle, true)
         );
@@ -3671,11 +3744,11 @@ function onCyclePoint(x, y, z) {
         var cornerX =
           x +
           approach(cycle.approach1) *
-            (cycle.probeClearance + tool.diameter / 2);
+          (cycle.probeClearance + tool.diameter / 2);
         var cornerY =
           y +
           approach(cycle.approach2) *
-            (cycle.probeClearance + tool.diameter / 2);
+          (cycle.probeClearance + tool.diameter / 2);
         var cornerI = 0;
         var cornerJ = 0;
         if (cycle.probeSpacing !== undefined) {
@@ -3704,11 +3777,11 @@ function onCyclePoint(x, y, z) {
         var cornerX =
           x +
           approach(cycle.approach1) *
-            (cycle.probeClearance + tool.diameter / 2);
+          (cycle.probeClearance + tool.diameter / 2);
         var cornerY =
           y +
           approach(cycle.approach2) *
-            (cycle.probeClearance + tool.diameter / 2);
+          (cycle.probeClearance + tool.diameter / 2);
         var cornerI = 0;
         var cornerJ = 0;
         if (cycle.probeSpacing !== undefined) {
@@ -3739,17 +3812,17 @@ function onCyclePoint(x, y, z) {
           gFormat.format(65),
           "P" + 9843,
           "X" +
-            xyzFormat.format(
-              x +
-                approach(cycle.approach1) *
-                  (cycle.probeClearance + tool.diameter / 2)
-            ),
+          xyzFormat.format(
+            x +
+            approach(cycle.approach1) *
+            (cycle.probeClearance + tool.diameter / 2)
+          ),
           "D" + xyzFormat.format(cycle.probeSpacing),
           "Q" + xyzFormat.format(cycle.probeOvertravel),
           "A" +
-            xyzFormat.format(
-              cycle.nominalAngle != undefined ? cycle.nominalAngle : 90
-            ),
+          xyzFormat.format(
+            cycle.nominalAngle != undefined ? cycle.nominalAngle : 90
+          ),
           getProbingArguments(cycle, false)
         );
         if (currentSection.strategy == "probe") {
@@ -3764,17 +3837,17 @@ function onCyclePoint(x, y, z) {
           gFormat.format(65),
           "P" + 9843,
           "Y" +
-            xyzFormat.format(
-              y +
-                approach(cycle.approach1) *
-                  (cycle.probeClearance + tool.diameter / 2)
-            ),
+          xyzFormat.format(
+            y +
+            approach(cycle.approach1) *
+            (cycle.probeClearance + tool.diameter / 2)
+          ),
           "D" + xyzFormat.format(cycle.probeSpacing),
           "Q" + xyzFormat.format(cycle.probeOvertravel),
           "A" +
-            xyzFormat.format(
-              cycle.nominalAngle != undefined ? cycle.nominalAngle : 0
-            ),
+          xyzFormat.format(
+            cycle.nominalAngle != undefined ? cycle.nominalAngle : 0
+          ),
           getProbingArguments(cycle, false)
         );
         if (currentSection.strategy == "probe") {
@@ -3904,18 +3977,18 @@ function getProbingArguments(cycle, updateWCS) {
       : undefined,
     cycle.updateToolWear && cycle.toolWearErrorCorrection < 100
       ? "F" +
-        xyzFormat.format(
-          cycle.toolWearErrorCorrection
-            ? cycle.toolWearErrorCorrection / 100
-            : 100
-        )
+      xyzFormat.format(
+        cycle.toolWearErrorCorrection
+          ? cycle.toolWearErrorCorrection / 100
+          : 100
+      )
       : undefined,
     cycle.wrongSizeAction == "stop-message"
       ? "H" + xyzFormat.format(cycle.toleranceSize ? cycle.toleranceSize : 0)
       : undefined,
     cycle.outOfPositionAction == "stop-message"
       ? "M" +
-        xyzFormat.format(cycle.tolerancePosition ? cycle.tolerancePosition : 0)
+      xyzFormat.format(cycle.tolerancePosition ? cycle.tolerancePosition : 0)
       : undefined,
     cycle.updateToolWear && cycleType == "probing-z"
       ? "T" + xyzFormat.format(cycle.toolLengthOffset)
@@ -3925,9 +3998,9 @@ function getProbingArguments(cycle, updateWCS) {
       : undefined,
     cycle.updateToolWear
       ? "V" +
-        xyzFormat.format(
-          cycle.toolWearUpdateThreshold ? cycle.toolWearUpdateThreshold : 0
-        )
+      xyzFormat.format(
+        cycle.toolWearUpdateThreshold ? cycle.toolWearUpdateThreshold : 0
+      )
       : undefined,
     cycle.printResults
       ? "W" + xyzFormat.format(1 + cycle.incrementComponent)
@@ -3935,11 +4008,11 @@ function getProbingArguments(cycle, updateWCS) {
     conditional(
       outputWCSCode,
       "S" +
-        probeWCSFormat.format(
-          probeOutputWorkOffset > 6
-            ? 0.01 * (probeOutputWorkOffset - 6) + 154
-            : probeOutputWorkOffset
-        )
+      probeWCSFormat.format(
+        probeOutputWorkOffset > 6
+          ? 0.01 * (probeOutputWorkOffset - 6) + 154
+          : probeOutputWorkOffset
+      )
     ),
   ];
 }
@@ -4080,12 +4153,12 @@ function onRapid5D(_x, _y, _z, _a, _b, _c) {
       !properties.useG0 &&
       (currentSection.getOptimizedTCPMode() == 0 ||
         (x ? 1 : 0) +
-          (y ? 1 : 0) +
-          (z ? 1 : 0) +
-          (a ? 1 : 0) +
-          (b ? 1 : 0) +
-          (c ? 1 : 0) >
-          1)
+        (y ? 1 : 0) +
+        (z ? 1 : 0) +
+        (a ? 1 : 0) +
+        (b ? 1 : 0) +
+        (c ? 1 : 0) >
+        1)
     ) {
       // required for multi-axis
       // axes are not synchronized
@@ -4246,7 +4319,7 @@ function getFeedDPM(_moveLength, _feed) {
     // combination FPM/DPM
     var length = Math.sqrt(
       Math.pow(_moveLength.xyzLength, 2.0) +
-        Math.pow(toDeg(_moveLength.abcLength) * dpmBPW, 2.0)
+      Math.pow(toDeg(_moveLength.abcLength) * dpmBPW, 2.0)
     );
     dpmFeed = Math.min(length / moveTime, maxDPM);
     if (Math.abs(dpmFeed - previousDPMFeed) < dpmFeedToler) {
@@ -4347,8 +4420,8 @@ function getRotaryRadius(axis, toolPosition, abc) {
     var d3 = toolPosition.z - center.z;
     var radius = Math.sqrt(
       Math.pow(d1 * normal.y - d2 * normal.x, 2.0) +
-        Math.pow(d2 * normal.z - d3 * normal.y, 2.0) +
-        Math.pow(d3 * normal.x - d1 * normal.z, 2.0)
+      Math.pow(d2 * normal.z - d3 * normal.y, 2.0) +
+      Math.pow(d3 * normal.x - d1 * normal.z, 2.0)
     );
   }
   return radius;
@@ -4471,14 +4544,14 @@ function getMoveLength(_x, _y, _z, _a, _b, _c) {
       getRadialDistance(moveLength.radius.x, startABC.x, endABC.x),
       2.0
     ) +
-      Math.pow(
-        getRadialDistance(moveLength.radius.y, startABC.y, endABC.y),
-        2.0
-      ) +
-      Math.pow(
-        getRadialDistance(moveLength.radius.z, startABC.z, endABC.z),
-        2.0
-      )
+    Math.pow(
+      getRadialDistance(moveLength.radius.y, startABC.y, endABC.y),
+      2.0
+    ) +
+    Math.pow(
+      getRadialDistance(moveLength.radius.z, startABC.z, endABC.z),
+      2.0
+    )
   );
 
   // calculate the tool tip move length
@@ -4574,11 +4647,11 @@ function isRewindAngleValid(_a, _b, _c) {
   ) {
     error(
       localize("REWIND: Rewind angles are the same as the previous angles: ") +
-        abcFormat.format(_a) +
-        ", " +
-        abcFormat.format(_b) +
-        ", " +
-        abcFormat.format(_c)
+      abcFormat.format(_a) +
+      ", " +
+      abcFormat.format(_b) +
+      ", " +
+      abcFormat.format(_c)
     );
     return false;
   }
@@ -4603,11 +4676,11 @@ function isRewindAngleValid(_a, _b, _c) {
       localize(
         "REWIND: Rewind angles are outside the limits of the machine: "
       ) +
-        abcFormat.format(_a) +
-        ", " +
-        abcFormat.format(_b) +
-        ", " +
-        abcFormat.format(_c)
+      abcFormat.format(_a) +
+      ", " +
+      abcFormat.format(_b) +
+      ", " +
+      abcFormat.format(_c)
     );
     return false;
   }
@@ -4634,11 +4707,11 @@ function onRewindMachine(_a, _b, _c) {
   if (!isRewindAngleValid(_a, _b, _c)) {
     error(
       localize("REWIND: Rewind angles are invalid:") +
-        abcFormat.format(_a) +
-        ", " +
-        abcFormat.format(_b) +
-        ", " +
-        abcFormat.format(_c)
+      abcFormat.format(_a) +
+      ", " +
+      abcFormat.format(_b) +
+      ", " +
+      abcFormat.format(_c)
     );
     return;
   }
@@ -4890,7 +4963,9 @@ function setCoolant(coolant) {
     } else {
       for (var c in coolantCodes) {
         skipBlock = isOptionalCoolant;
-        writeBlock(coolantCodes[c]);
+        //edits
+        COOLANT_PARITY = coolantCodes[c] == "M8" ? " (COOLANT ON)" : " (COOLANT OFF)"
+        writeBlock(coolantCodes[c] + COOLANT_PARITY);
       }
     }
     return undefined;
@@ -5364,42 +5439,42 @@ function inspectionWriteCADTransform() {
   var cadEuler = cadWorkPlane.getEuler2(EULER_XYZ_S);
   writeln(
     "DPRNT[G331" +
-      "*N" +
-      getPointNumber() +
-      "*A" +
-      abcFormat.format(cadEuler.x) +
-      "*B" +
-      abcFormat.format(cadEuler.y) +
-      "*C" +
-      abcFormat.format(cadEuler.z) +
-      "*X" +
-      xyzFormat.format(-cadOrigin.x) +
-      "*Y" +
-      xyzFormat.format(-cadOrigin.y) +
-      "*Z" +
-      xyzFormat.format(-cadOrigin.z) +
-      "]"
+    "*N" +
+    getPointNumber() +
+    "*A" +
+    abcFormat.format(cadEuler.x) +
+    "*B" +
+    abcFormat.format(cadEuler.y) +
+    "*C" +
+    abcFormat.format(cadEuler.z) +
+    "*X" +
+    xyzFormat.format(-cadOrigin.x) +
+    "*Y" +
+    xyzFormat.format(-cadOrigin.y) +
+    "*Z" +
+    xyzFormat.format(-cadOrigin.z) +
+    "]"
   );
 }
 
 function inspectionWriteWorkplaneTransform() {
   var orientation =
     machineConfiguration.isMultiAxisConfiguration() &&
-    currentMachineABC != undefined
+      currentMachineABC != undefined
       ? machineConfiguration.getOrientation(currentMachineABC)
       : currentSection.workPlane;
   var abc = orientation.getEuler2(EULER_XYZ_S);
   writeln(
     "DPRNT[G330" +
-      "*N" +
-      getPointNumber() +
-      "*A" +
-      abcFormat.format(abc.x) +
-      "*B" +
-      abcFormat.format(abc.y) +
-      "*C" +
-      abcFormat.format(abc.z) +
-      "*X0*Y0*Z0*I0*R0]"
+    "*N" +
+    getPointNumber() +
+    "*A" +
+    abcFormat.format(abc.x) +
+    "*B" +
+    abcFormat.format(abc.y) +
+    "*C" +
+    abcFormat.format(abc.z) +
+    "*X0*Y0*Z0*I0*R0]"
   );
 }
 
