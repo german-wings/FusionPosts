@@ -10,8 +10,6 @@ are removed it is pretty much the exact movement codes as a stock post would do.
 
 Setup sheets are a separate document to be maintained , so to an extent these posts contain some of the information as setup sheets.
 
-If someone wants to use these posts , do so. If someone wants to suggest an update do so.
-
 Post Processors for :
 
 DMG Mori NLX 2500 / 700
